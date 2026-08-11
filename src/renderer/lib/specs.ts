@@ -49,12 +49,7 @@ export async function getSpecs() {
         const cpuInfo = fs.readFileSync("/proc/cpuinfo", "utf8");
 
         // ARM EL2 Check
-        try {
-            const elLevel = (await execAsync("journalctl -k | grep -i 'EL2'")).stdout.trim();
-        } catch(e) {
-            console.warn("Device not booted in EL2 or arch is x86");
-            const elLevel = "None";
-        }
+        const elLevel = (await execAsync("journalctl -k | grep -i 'EL2'")).stdout.trim();
 
         if (
             (cpuInfo.includes("vmx") || cpuInfo.includes("svm") || elLevel.includes("EL2")) &&
