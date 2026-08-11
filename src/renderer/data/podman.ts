@@ -3,8 +3,9 @@ import {
     COMPOSE_PORT_MAPPINGS,
     GUEST_API_PORT,
     GUEST_QMP_PORT,
+    GUEST_UPDATE_PORT,
     QMP_ARGUMENT,
-    RESTART_ON_FAILURE,
+    RESTART_NO,
 } from "../lib/constants";
 
 export const PODMAN_DEFAULT_COMPOSE: ComposeConfig = {
@@ -14,7 +15,7 @@ export const PODMAN_DEFAULT_COMPOSE: ComposeConfig = {
     },
     services: {
         windows: {
-            image: "ghcr.io/dockur/windows:6.00",
+            image: "ghcr.io/dockur/windows:6.03",
             container_name: "WinBoat",
             environment: {
                 VERSION: "11",
@@ -25,15 +26,14 @@ export const PODMAN_DEFAULT_COMPOSE: ComposeConfig = {
                 PASSWORD: "MyWindowsPassword",
                 HOME: "${HOME}",
                 LANGUAGE: "English",
-                NETWORK: "user",
-                USER_PORTS: `${GUEST_API_PORT}`,
+                USER_PORTS: `${GUEST_API_PORT},${GUEST_UPDATE_PORT}`,
                 HOST_PORTS: `${GUEST_QMP_PORT}`,
                 ARGUMENTS: QMP_ARGUMENT,
             },
             cap_add: ["NET_ADMIN"],
             ports: [...COMPOSE_PORT_MAPPINGS],
             stop_grace_period: "120s",
-            restart: RESTART_ON_FAILURE,
+            restart: RESTART_NO,
             privileged: true,
             volumes: [
                 "data:/storage",

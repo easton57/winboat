@@ -63,7 +63,7 @@ Before running WinBoat, ensure your system meets the following requirements:
       - [Installation Guide](https://github.com/containers/podman-compose?tab=readme-ov-file#installation)
 - **FreeRDP**: Required for remote desktop connection (Please make sure you have **Version 3.x.x** with sound support included)
     - [Installation Guide](https://github.com/FreeRDP/FreeRDP/wiki/PreBuilds)
-- [OPTIONAL] **Kernel Modules**: The `iptables` / `nftables` and `iptable_nat` kernel modules can be loaded for network autodiscovery and better shared filesystem performance, but this is not obligatory in newer versions of WinBoat
+- [OPTIONAL] **Kernel Modules**: The `iptables` / `nftables` kernel modules can be loaded for better network performance, but this is not obligatory in newer versions of WinBoat
     - [Module loading instructions](https://rentry.org/rmfq2e5e)
 
 ## Downloading
@@ -145,10 +145,10 @@ They're awesome and you should check them out:
 
 ## Star History
 
-<a href="https://www.star-history.com/?repos=tibixdev%2Fwinboat&type=date&legend=top-left">
+<a href="https://www.star-history.com/?repos=winboat-org%2Fwinboat&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=tibixdev/winboat&type=date&theme=dark&legend=top-left&sealed_token=zAULDxizn0P-jCXSLfkaIJCa-OhtmdFRKaZ3CfYqpk2L4um_02jxxY0_CVY_IrvpAJk8hph0kK0oyrlD0exFSrs4VDF86zOvTw3K0FVjggjuVR_v2gre9koLhhy8vTSR3UrY1xcINMWrbDurLh9Uiej8ZD2tsDDeksYZKnJMtaDSDp0zh2zJDGGrXBx4" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=tibixdev/winboat&type=date&legend=top-left&sealed_token=zAULDxizn0P-jCXSLfkaIJCa-OhtmdFRKaZ3CfYqpk2L4um_02jxxY0_CVY_IrvpAJk8hph0kK0oyrlD0exFSrs4VDF86zOvTw3K0FVjggjuVR_v2gre9koLhhy8vTSR3UrY1xcINMWrbDurLh9Uiej8ZD2tsDDeksYZKnJMtaDSDp0zh2zJDGGrXBx4" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=tibixdev/winboat&type=date&legend=top-left&sealed_token=zAULDxizn0P-jCXSLfkaIJCa-OhtmdFRKaZ3CfYqpk2L4um_02jxxY0_CVY_IrvpAJk8hph0kK0oyrlD0exFSrs4VDF86zOvTw3K0FVjggjuVR_v2gre9koLhhy8vTSR3UrY1xcINMWrbDurLh9Uiej8ZD2tsDDeksYZKnJMtaDSDp0zh2zJDGGrXBx4" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=winboat-org/winboat&type=date&theme=dark&legend=top-left&sealed_token=bMIy5NDp7D4DUsG7zQUN_tW3YCQ1pcix4e57mGEWIyinzijqfFnulFEG28I9kiBgtj7vcLKPjXCDrXwrmLxgTSWosjR3x7v9spNBc04CeYHspXMlmgnsQe9CV6YWtv33fUPY3F5AM_Y1k5z4tqh7Y9W6Z-4ysZOs7yKiWJIBzVYPXulAv_TrnMyAgQtQ" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=winboat-org/winboat&type=date&legend=top-left&sealed_token=bMIy5NDp7D4DUsG7zQUN_tW3YCQ1pcix4e57mGEWIyinzijqfFnulFEG28I9kiBgtj7vcLKPjXCDrXwrmLxgTSWosjR3x7v9spNBc04CeYHspXMlmgnsQe9CV6YWtv33fUPY3F5AM_Y1k5z4tqh7Y9W6Z-4ysZOs7yKiWJIBzVYPXulAv_TrnMyAgQtQ" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=winboat-org/winboat&type=date&legend=top-left&sealed_token=bMIy5NDp7D4DUsG7zQUN_tW3YCQ1pcix4e57mGEWIyinzijqfFnulFEG28I9kiBgtj7vcLKPjXCDrXwrmLxgTSWosjR3x7v9spNBc04CeYHspXMlmgnsQe9CV6YWtv33fUPY3F5AM_Y1k5z4tqh7Y9W6Z-4ysZOs7yKiWJIBzVYPXulAv_TrnMyAgQtQ" />
  </picture>
 </a>

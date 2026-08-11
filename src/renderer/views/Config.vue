@@ -10,7 +10,7 @@
                     desc="How many gigabytes of RAM are allocated to the Windows virtual machine"
                     type="number"
                     unit="GB"
-                    :min="2"
+                    :min="MIN_VM_RAM_GB"
                     :max="maxRamGB"
                     v-model:value="ramGB"
                 />
@@ -70,7 +70,10 @@
                 />
 
                 <div class="flex flex-col">
-                    <p class="my-0 text-red-500" v-for="(error, k) of errors" :key="k">❗ {{ error }}</p>
+                    <p class="my-0 text-yellow-500" v-for="(warning, k) of warnings" :key="`warning-${k}`">
+                        ⚠ {{ warning }}
+                    </p>
+                    <p class="my-0 text-red-500" v-for="(error, k) of errors" :key="`error-${k}`">❗ {{ error }}</p>
                 </div>
                 <x-button
                     :disabled="saveButtonDisabled || isUpdatingUSBPrerequisites"
@@ -445,11 +448,13 @@ import { USBManager, type PTSerializableDeviceInfo } from "../lib/usbmanager";
 import { type Device } from "usb";
 import {
     USB_VID_BLACKLIST,
-    RESTART_ON_FAILURE,
+    RESTART_UNLESS_STOPPED,
     RESTART_NO,
     GUEST_QMP_PORT,
+    MIN_VM_RAM_GB,
     QMP_ARGUMENT,
     QMP_PORT_MAPPING,
+    RECOMMENDED_VM_RAM_GB,
 } from "../lib/constants";
 const { app }: typeof import("@electron/remote") = require("@electron/remote");
 const electron: typeof import("electron") = require("electron").remote || require("@electron/remote");
@@ -516,7 +521,7 @@ async function assignValues() {
     origShareFolder.value = shareFolder.value;
     origSharedFolderPath.value = sharedFolderPath.value;
 
-    autoStartContainer.value = compose.value.services.windows.restart === RESTART_ON_FAILURE;
+    autoStartContainer.value = compose.value.services.windows.restart === RESTART_UNLESS_STOPPED;
     origAutoStartContainer.value = autoStartContainer.value;
 
     const specs = await getSpecs();
@@ -548,7 +553,7 @@ async function saveCompose() {
         compose.value!.services.windows.volumes.push(volumeStr);
     }
 
-    compose.value!.services.windows.restart = autoStartContainer.value ? RESTART_ON_FAILURE : RESTART_NO;
+    compose.value!.services.windows.restart = autoStartContainer.value ? RESTART_UNLESS_STOPPED : RESTART_NO;
 
     isApplyingChanges.value = true;
     try {
@@ -629,8 +634,8 @@ const errors = computed(() => {
         errCollection.push("You cannot allocate more CPU cores to Windows than you have available");
     }
 
-    if (!ramGB.value || ramGB.value < 4) {
-        errCollection.push("You must allocate at least 4 GB of RAM for Windows to run properly");
+    if (!ramGB.value || ramGB.value < MIN_VM_RAM_GB) {
+        errCollection.push(`You must allocate at least ${MIN_VM_RAM_GB} GB of RAM for Windows to run properly`);
     }
 
     if (ramGB.value > maxRamGB.value) {
@@ -638,6 +643,16 @@ const errors = computed(() => {
     }
 
     return errCollection;
+});
+
+const warnings = computed(() => {
+    if (ramGB.value >= MIN_VM_RAM_GB && ramGB.value < RECOMMENDED_VM_RAM_GB) {
+        return [
+            `Allocating less than the recommended ${RECOMMENDED_VM_RAM_GB} GB of RAM may limit Windows performance`,
+        ];
+    }
+
+    return [];
 });
 
 const hasUsbVolume = () => compose.value?.services.windows.volumes?.some(x => x.includes(USB_BUS_PATH));

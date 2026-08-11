@@ -1,6 +1,7 @@
 import { type InstallConfiguration } from "../../types";
-import { NOVNC_URL, WINBOAT_API_URL, WINBOAT_DIR } from "./constants";
+import { GUEST_TOKEN_PATH, NOVNC_URL, WINBOAT_API_URL, WINBOAT_DIR } from "./constants";
 import { createLogger } from "../utils/log";
+import { guestServerOemDir } from "../utils/guestServer";
 import { createNanoEvents, type Emitter } from "nanoevents";
 import { Winboat } from "./winboat";
 import { ContainerManager } from "./containers/container";
@@ -9,9 +10,8 @@ import { createContainer } from "./containers/common";
 
 const fs: typeof import("fs") = require("fs");
 const path: typeof import("path") = require("path");
+const crypto: typeof import("crypto") = require("node:crypto");
 const nodeFetch: typeof import("node-fetch").default = require("node-fetch");
-const remote: typeof import("@electron/remote") = require("@electron/remote");
-const argon2: typeof import("argon2") = require("argon2");
 const logger = createLogger(path.join(WINBOAT_DIR, "install.log"));
 
 export enum InstallStates {
@@ -23,7 +23,7 @@ export enum InstallStates {
     INSTALLING_WINDOWS = "Installing Windows",
     COMPLETED = "Completed",
     INSTALL_ERROR = "Install Error",
-};
+}
 
 interface InstallEvents {
     stateChanged: (state: InstallStates) => void;
@@ -96,7 +96,7 @@ export class InstallManager {
 
         // Storage folder mapping
         const storageFolderIdx = composeContent.services.windows.volumes.findIndex(vol => vol.includes("/storage"));
-        
+
         if (storageFolderIdx === -1) {
             logger.warn("No /storage volume found in compose template, adding one...");
             composeContent.services.windows.volumes.push(`${this.conf.installFolder}:/storage`);
@@ -106,7 +106,7 @@ export class InstallManager {
 
         // Shared folder mapping
         const sharedFolderIdx = composeContent.services.windows.volumes.findIndex(vol => vol.includes("/shared"));
-        
+
         if (!this.conf.sharedFolderPath) {
             // Remove shared folder if not enabled
             if (sharedFolderIdx !== -1) {
@@ -116,7 +116,7 @@ export class InstallManager {
         } else {
             // Add or update shared folder
             const volumeStr = `${this.conf.sharedFolderPath}:/shared`;
-            
+
             if (sharedFolderIdx === -1) {
                 composeContent.services.windows.volumes.push(volumeStr);
                 logger.info(`Added shared folder: ${this.conf.sharedFolderPath}`);
@@ -134,7 +134,7 @@ export class InstallManager {
         this.changeState(InstallStates.CREATING_OEM);
         logger.info("Creating OEM assets");
 
-        const oemPath = path.join(WINBOAT_DIR, "oem"); // Fixed the path separator
+        const oemPath = path.join(WINBOAT_DIR, "oem");
 
         // Create OEM directory if it doesn’t exist
         if (!fs.existsSync(oemPath)) {
@@ -142,10 +142,9 @@ export class InstallManager {
             logger.info(`Created OEM directory: ${oemPath}`);
         }
 
-        // Determine the source path based on whether the app is bundled
-        const appPath = remote.app.isPackaged
-            ? path.join(process.resourcesPath, "guest_server") // For packaged app
-            : path.join(remote.app.getAppPath(), "..", "..", "guest_server"); // For dev mode
+        // The OEM payload (server\, updater\, install.bat, nssm.exe, ...) is built
+        // into the guest server resource's `oem` directory.
+        const appPath = guestServerOemDir();
 
         logger.info(`Guest server source path: ${appPath}`);
 
@@ -193,12 +192,13 @@ export class InstallManager {
             throw error;
         }
 
-        // Create password hash file in oemPath
+        // Generate the guest authentication token, will be placed in OEM
         try {
-            const hash = await argon2.hash(this.conf.password);
-            fs.writeFileSync(path.join(oemPath, "auth.hash"), hash, { encoding: "utf8" });
+            const token = crypto.randomUUID();
+            fs.writeFileSync(GUEST_TOKEN_PATH, token, { encoding: "utf8" });
+            fs.writeFileSync(path.join(oemPath, "guest_token"), token, { encoding: "utf8" });
         } catch (error) {
-            logger.error(`Failed to create password hash: ${error}`);
+            logger.error(`Failed to create guest token: ${error}`);
             throw error;
         }
     }
@@ -260,9 +260,7 @@ export class InstallManager {
             const start = performance.now();
 
             try {
-                const res = await nodeFetch(`${WINBOAT_API_URL}/health`, {
-                    signal: AbortSignal.timeout(5000),
-                });
+                const res = await nodeFetch(`${WINBOAT_API_URL}/health`, { signal: AbortSignal.timeout(5000) });
 
                 if (res.status === 200) {
                     logger.info("WinBoat Guest Server is up and healthy!");
@@ -318,6 +316,47 @@ export class InstallManager {
     }
 }
 
+/**
+ * Finds the host storage folder configured in the compose file (i.e. the folder
+ * mapped to `/storage`, which holds the Windows disk image(s)).
+ * @returns `null` if the compose file couldn't be read, no `/storage` volume was
+ * found, or the volume points to a legacy Docker named volume rather than a host path.
+ */
+function findStorageFolderPath(containerRuntime: ContainerManager): string | null {
+    if (!fs.existsSync(containerRuntime.composeFilePath)) return null;
+
+    try {
+        const compose = Winboat.readCompose(containerRuntime.composeFilePath);
+        const storage = compose.services.windows.volumes.find(vol => vol.includes("/storage"));
+        const storageFolder = storage?.split(":").at(0) ?? null;
+
+        // Legacy Docker named volume (e.g. "data:/storage") isn't a host path we can inspect directly
+        if (!storageFolder || !path.isAbsolute(storageFolder)) return null;
+
+        return storageFolder;
+    } catch (e) {
+        logger.error("Failed to read compose file while looking for the storage folder");
+        logger.error(e);
+        return null;
+    }
+}
+
+/**
+ * Checks whether a Windows disk image (e.g. `data.img`, `data2.img`, `data.qcow2`)
+ * exists inside the given storage folder.
+ */
+function hasWindowsDiskImage(storageFolder: string): boolean {
+    if (!fs.existsSync(storageFolder)) return false;
+
+    try {
+        return fs.readdirSync(storageFolder).some(entry => /^data\d*\.(img|qcow2)$/i.test(entry));
+    } catch (e) {
+        logger.error(`Failed to read storage folder at '${storageFolder}'`);
+        logger.error(e);
+        return false;
+    }
+}
+
 export async function isInstalled(): Promise<boolean> {
     // Check if a winboat container exists
     const config = WinboatConfig.readConfigObject(false);
@@ -326,5 +365,29 @@ export async function isInstalled(): Promise<boolean> {
 
     const containerRuntime = createContainer(config.containerRuntime);
 
-    return await containerRuntime.exists();
+    if (await containerRuntime.exists()) {
+        return true;
+    }
+
+    // The container might be missing even though WinBoat was previously installed
+    // e.g. the user might have manually removed the container
+    // If the compose file still exists we can probably recreate it
+    if (!fs.existsSync(containerRuntime.composeFilePath)) {
+        return false;
+    }
+
+    // Check the installation for existing files
+    const storageFolder = findStorageFolderPath(containerRuntime);
+    if (storageFolder && !hasWindowsDiskImage(storageFolder)) {
+        logger.warn(
+            `Found a WinBoat compose file, but no Windows disk image was found in the storage folder at '${storageFolder}'. Not attempting to recreate the container.`,
+        );
+        return false;
+    }
+
+    logger.info(
+        "WinBoat container is missing but installation artifacts (compose file and disk image) were found on disk, attempting to recreate the container...",
+    );
+
+    return true;
 }
