@@ -15,6 +15,8 @@ Source0:        %{url}/archive/refs/tags/%{version}/%{name}-%{version}.tar.gz
 Source1:        https://github.com/oven-sh/bun/releases/download/bun-v%{bun_version}/bun-linux-%{bun_arch}.zip
 
 BuildRequires:  unzip
+BuildRequires:  git
+BuildRequires:  golang
 
 %description
 <longer description>
