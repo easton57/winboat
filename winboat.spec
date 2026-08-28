@@ -17,6 +17,7 @@ Source1:        https://github.com/oven-sh/bun/releases/download/bun-v%{bun_vers
 BuildRequires:  unzip
 BuildRequires:  git
 BuildRequires:  golang
+BuildRequires:  libxcrypt
 
 %description
 <longer description>
